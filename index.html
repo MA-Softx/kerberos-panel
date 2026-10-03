@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Kerberos Ayarlar</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', sans-serif;
+    background: var(--tg-theme-bg-color, #1a1a2e);
+    color: var(--tg-theme-text-color, #fafafa);
+    padding: 16px;
+    min-height: 100vh;
+  }
+  h2 {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--tg-theme-link-color, #60a5fa);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section {
+    background: var(--tg-theme-secondary-bg-color, #0c0c10);
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 12px;
+  }
+  .section-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--tg-theme-hint-color, #71717a);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 10px;
+  }
+  label {
+    display: block;
+    font-size: 12px;
+    color: var(--tg-theme-hint-color, #a1a1aa);
+    margin-bottom: 4px;
+    margin-top: 10px;
+  }
+  label:first-of-type { margin-top: 0; }
+  input, textarea {
+    width: 100%;
+    background: var(--tg-theme-bg-color, #050508);
+    color: var(--tg-theme-text-color, #fafafa);
+    border: 1px solid #2a2a38;
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 13px;
+    font-family: 'Consolas', monospace;
+    outline: none;
+    transition: border-color 0.2s;
+    resize: none;
+  }
+  input:focus, textarea:focus { border-color: #3b82f6; }
+  .proxy-slot {
+    border: 1px solid #252530;
+    border-radius: 10px;
+    padding: 12px;
+    margin-bottom: 10px;
+    position: relative;
+  }
+  .slot-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: #60a5fa;
+    margin-bottom: 8px;
+  }
+  .remove-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: #2a0f18;
+    color: #ef4444;
+    border: none;
+    border-radius: 6px;
+    padding: 3px 8px;
+    font-size: 11px;
+    cursor: pointer;
+  }
+  .add-btn {
+    width: 100%;
+    background: #1e3a5f;
+    color: #60a5fa;
+    border: 1px dashed #3b82f6;
+    border-radius: 8px;
+    padding: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 4px;
+  }
+  .add-btn:active { background: #1e3a8f; }
+  .save-btn {
+    width: 100%;
+    background: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 14px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: background 0.2s;
+  }
+  .save-btn:active { background: #2563eb; }
+  .status {
+    text-align: center;
+    font-size: 12px;
+    color: #10b981;
+    margin-top: 10px;
+    min-height: 18px;
+  }
+  .row {
+    display: flex;
+    gap: 8px;
+  }
+  .row input { flex: 1; }
+</style>
+</head>
+<body>
+<h2>⚙️ Kerberos Ayarlar</h2>
+
+<!-- Hedef URL -->
+<div class="section">
+  <div class="section-title">🎯 Hedef URL</div>
+  <input type="url" id="target_url" placeholder="https://hedef-site.com">
+</div>
+
+<!-- Döngü -->
+<div class="section">
+  <div class="section-title">🔁 Döngü Sayısı</div>
+  <input type="number" id="loop_count" min="1" max="999" value="1" placeholder="1">
+</div>
+
+<!-- Proxy Slotları -->
+<div class="section">
+  <div class="section-title">🔌 Proxy Slotları</div>
+  <div id="proxy_slots_container"></div>
+  <button class="add-btn" onclick="addSlot()">+ Yeni Proxy Slotu Ekle</button>
+</div>
+
+<button class="save-btn" onclick="saveAll()">✅ Kaydet &amp; Uygula</button>
+<div class="status" id="status_msg"></div>
+
+<script>
+  const tg = window.Telegram.WebApp;
+  tg.ready();
+  tg.expand();
+
+  let slotCount = 0;
+  const slots = [];
+
+  function addSlot(proxy = '', reset = '') {
+    if (slots.length >= 10) return;
+    slotCount++;
+    const idx = slots.length;
+    const div = document.createElement('div');
+    div.className = 'proxy-slot';
+    div.id = 'slot_' + idx;
+    div.innerHTML = `
+      <div class="slot-title">${slotCount}. Proxy Alanı</div>
+      ${slotCount > 1 ? `<button class="remove-btn" onclick="removeSlot(${idx})">✕</button>` : ''}
+      <label>Proxy Adresi</label>
+      <input type="text" id="proxy_${idx}" value="${proxy}" placeholder="http://user:pass@host:port">
+      <label>Reset URL <span style="color:#52525b">(opsiyonel)</span></label>
+      <input type="text" id="reset_${idx}" value="${reset}" placeholder="https://reset-api.com/...">
+    `;
+    document.getElementById('proxy_slots_container').appendChild(div);
+    slots.push(idx);
+  }
+
+  function removeSlot(idx) {
+    const el = document.getElementById('slot_' + idx);
+    if (el) el.remove();
+    const pos = slots.indexOf(idx);
+    if (pos !== -1) slots.splice(pos, 1);
+    // Başlıkları yeniden numaralandır
+    let n = 1;
+    slots.forEach(i => {
+      const title = document.querySelector('#slot_' + i + ' .slot-title');
+      if (title) title.textContent = n++ + '. Proxy Alanı';
+    });
+  }
+
+  function saveAll() {
+    const target = document.getElementById('target_url').value.trim();
+    const loop   = document.getElementById('loop_count').value.trim();
+    const proxySlots = [];
+    slots.forEach(i => {
+      const p = (document.getElementById('proxy_' + i)?.value || '').trim();
+      const r = (document.getElementById('reset_' + i)?.value || '').trim();
+      if (p) proxySlots.push({ proxy: p, reset_url: r });
+    });
+
+    const payload = { target, loop, proxy_slots: proxySlots };
+    
+    fetch('/apply', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+    .then(r => r.json())
+    .then(d => {
+      document.getElementById('status_msg').textContent = d.ok ? '✅ Ayarlar uygulandı!' : '❌ Hata: ' + d.error;
+      if (d.ok) setTimeout(() => tg.close(), 1200);
+    })
+    .catch(() => {
+      document.getElementById('status_msg').textContent = '❌ Bağlantı hatası';
+    });
+  }
+
+  // Mevcut ayarları yükle
+  fetch('/current')
+    .then(r => r.json())
+    .then(d => {
+      if (d.target) document.getElementById('target_url').value = d.target;
+      if (d.loop)   document.getElementById('loop_count').value = d.loop;
+      if (d.proxy_slots && d.proxy_slots.length > 0) {
+        d.proxy_slots.forEach(s => addSlot(s.proxy, s.reset_url));
+      } else {
+        addSlot();
+      }
+    })
+    .catch(() => addSlot());
+</script>
+</body>
+</html>
