@@ -201,35 +201,30 @@
     });
 
     const payload = { target, loop, proxy_slots: proxySlots };
-    
-    fetch('/apply', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    })
-    .then(r => r.json())
-    .then(d => {
-      document.getElementById('status_msg').textContent = d.ok ? '✅ Ayarlar uygulandı!' : '❌ Hata: ' + d.error;
-      if (d.ok) setTimeout(() => tg.close(), 1200);
-    })
-    .catch(() => {
-      document.getElementById('status_msg').textContent = '❌ Bağlantı hatası';
-    });
+
+    // Telegram.WebApp.sendData ile bot'a gönder (localhost gerekmez)
+    try {
+      tg.sendData(JSON.stringify(payload));
+      document.getElementById('status_msg').textContent = '✅ Ayarlar gönderildi!';
+      setTimeout(() => tg.close(), 800);
+    } catch(e) {
+      document.getElementById('status_msg').textContent = '❌ Hata: ' + e.message;
+    }
   }
 
-  // Mevcut ayarları yükle
-  fetch('/current')
-    .then(r => r.json())
-    .then(d => {
+  // Mevcut ayarları URL hash'ten yükle (bot tarafından inject edilir)
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const data = params.get('data');
+    if (data) {
+      const d = JSON.parse(decodeURIComponent(data));
       if (d.target) document.getElementById('target_url').value = d.target;
       if (d.loop)   document.getElementById('loop_count').value = d.loop;
       if (d.proxy_slots && d.proxy_slots.length > 0) {
         d.proxy_slots.forEach(s => addSlot(s.proxy, s.reset_url));
-      } else {
-        addSlot();
-      }
-    })
-    .catch(() => addSlot());
+      } else { addSlot(); }
+    } else { addSlot(); }
+  } catch(e) { addSlot(); }
 </script>
 </body>
 </html>
