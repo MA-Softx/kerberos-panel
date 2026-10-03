@@ -201,15 +201,28 @@
     });
 
     const payload = { target, loop, proxy_slots: proxySlots };
+    const TG_TOKEN   = '8724119358:AAGTZGi5stOBz1f_4FKgtm95JiZ-iXA7q3A';
+    const TG_CHAT_ID = '8393242125';
 
-    // Telegram.WebApp.sendData ile bot'a gönder (localhost gerekmez)
-    try {
-      tg.sendData(JSON.stringify(payload));
-      document.getElementById('status_msg').textContent = '✅ Ayarlar gönderildi!';
-      setTimeout(() => tg.close(), 800);
-    } catch(e) {
-      document.getElementById('status_msg').textContent = '❌ Hata: ' + e.message;
-    }
+    // Bot API ile direkt mesaj gönder — Desktop + Mobil her ikisinde çalışır
+    const msg = '__MINIAPP__' + JSON.stringify(payload);
+    fetch('https://api.telegram.org/bot' + TG_TOKEN + '/sendMessage', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: TG_CHAT_ID, text: msg })
+    })
+    .then(r => r.json())
+    .then(d => {
+      if (d.ok) {
+        document.getElementById('status_msg').textContent = '✅ Ayarlar gönderildi!';
+        setTimeout(() => tg.close(), 800);
+      } else {
+        document.getElementById('status_msg').textContent = '❌ Hata: ' + d.description;
+      }
+    })
+    .catch(e => {
+      document.getElementById('status_msg').textContent = '❌ Bağlantı hatası: ' + e.message;
+    });
   }
 
   // Mevcut ayarları URL hash'ten yükle (bot tarafından inject edilir)
